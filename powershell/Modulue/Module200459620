@@ -1,0 +1,95 @@
+param (
+    [switch]$System,
+    [switch]$Disks,
+    [switch]$Network
+)
+
+# Function to format numbers in a human-friendly way
+function FormatHumanFriendlyNumber($value) {
+    if ($value -gt 1GB) {
+        return "{0:N2} GB" -f ($value / 1GB)
+    } elseif ($value -gt 1MB) {
+        return "{0:N2} MB" -f ($value / 1MB)
+    } elseif ($value -gt 1KB) {
+        return "{0:N2} KB" -f ($value / 1KB)
+    } else {
+        return "$value Bytes"
+    }
+}
+
+# Get system information including various details using PowerShell
+
+# ... (Rest of the code for gathering system information, memory, disk, and network sections) ...
+
+# Display the gathered information based on parameters
+
+if ($System) {
+    # Display System Information
+    Write-Host "Operating System Information"
+    Write-Host "---------------------------"
+    Write-Host "Name: $osName"
+    Write-Host "Version: $osVersion"
+    Write-Host "Architecture: $osArchitecture"
+    Write-Host
+
+    Write-Host "Computer System Information"
+    Write-Host "---------------------------"
+    Write-Host "Manufacturer: $manufacturer"
+    Write-Host "Model: $model"
+    Write-Host
+
+    Write-Host "Processor Information"
+    Write-Host "---------------------"
+    Write-Host "Description: $cpuDescription"
+    Write-Host "Speed: $cpuSpeed"
+    Write-Host "Cores: $cpuCores"
+    Write-Host "Threads: $cpuThreads"
+    Write-Host "L1 Cache Size: $l1CacheSizeMB"
+    Write-Host "L2 Cache Size: $l2CacheSizeMB"
+    Write-Host "L3 Cache Size: $l3CacheSizeMB"
+    Write-Host
+
+    Write-Host "Memory Information"
+    Write-Host "------------------"
+    $memoryTable | Format-Table -AutoSize -Property Vendor, Description, Size, Bank, Slot
+    Write-Host
+
+    Write-Host "Video Card Information"
+    Write-Host "---------------------"
+    $videoTable | Format-Table -AutoSize -Property Vendor, Description, ScreenResolution
+    Write-Host
+}
+
+if ($Disks) {
+    # Display Disk Drive Information
+    Write-Host "Disk Drive Information"
+    Write-Host "----------------------"
+    $diskTable | Format-Table -AutoSize -Property Vendor, Model, Size, LogicalDisk, FreeSpace, UsedSpace, FreePercentage
+    Write-Host
+}
+
+if ($Network) {
+    # Display Network Adapter Information
+    Write-Host "Network Adapter Configuration Report"
+    Write-Host "------------------------------------"
+    $adapterConfigurations | Format-Table -AutoSize -Property Description, Index, IPAddress, SubnetMask, DNSDomain, DNSServer
+    Write-Host
+}
+
+# If no specific parameters were provided, display the full report
+if (-not ($System -or $Disks -or $Network)) {
+    Write-Host "System Information Report"
+    Write-Host "------------------------"
+
+    # ... (Display the rest of the sections as needed) ...
+
+    Write-Host "`nDisk Drive Information"
+    Write-Host "----------------------"
+    $diskTable | Format-Table -AutoSize -Property Vendor, Model, Size, LogicalDisk, FreeSpace, UsedSpace, FreePercentage
+    Write-Host
+
+    Write-Host "`nNetwork Adapter Configuration Report"
+    Write-Host "------------------------------------"
+    $adapterConfigurations | Format-Table -AutoSize -Property Description, Index, IPAddress, SubnetMask, DNSDomain, DNSServer
+    Write-Host
+}

@@ -1,0 +1,168 @@
+# Function to format numbers in a human-friendly way
+function FormatHumanFriendlyNumber($value) {
+    if ($value -gt 1GB) {
+        return "{0:N2} GB" -f ($value / 1GB)
+    } elseif ($value -gt 1MB) {
+        return "{0:N2} MB" -f ($value / 1MB)
+    } elseif ($value -gt 1KB) {
+        return "{0:N2} KB" -f ($value / 1KB)
+    } else {
+        return "$value Bytes"
+    }
+}
+
+# Get system information including various details using PowerShell
+
+# Operating System Information
+$osInfo = Get-WmiObject Win32_OperatingSystem
+$osName = $osInfo.Caption
+$osVersion = $osInfo.Version
+$osArchitecture = $osInfo.OSArchitecture
+
+# Computer System Information
+$systemInfo = Get-WmiObject Win32_ComputerSystem
+$manufacturer = $systemInfo.Manufacturer
+$model = $systemInfo.Model
+
+# Processor Information
+$cpuInfo = Get-WmiObject Win32_Processor
+$cpuDescription = $cpuInfo.Description
+$cpuSpeed = FormatHumanFriendlyNumber $cpuInfo.MaxClockSpeed
+$cpuCores = $cpuInfo.NumberOfCores
+$cpuThreads = $cpuInfo.NumberOfLogicalProcessors
+
+# Processor Cache Information
+$cacheInfo = Get-WmiObject Win32_CacheMemory
+$l1CacheSize = ($cacheInfo | Where-Object { $_.Level -eq 1 } | Measure-Object -Property InstalledSize -Sum).Sum
+$l2CacheSize = ($cacheInfo | Where-Object { $_.Level -eq 2 } | Measure-Object -Property InstalledSize -Sum).Sum
+$l3CacheSize = ($cacheInfo | Where-Object { $_.Level -eq 3 } | Measure-Object -Property InstalledSize -Sum).Sum
+
+# Convert cache sizes to human-friendly format
+$l1CacheSizeMB = FormatHumanFriendlyNumber $l1CacheSize
+$l2CacheSizeMB = FormatHumanFriendlyNumber $l2CacheSize
+$l3CacheSizeMB = FormatHumanFriendlyNumber $l3CacheSize
+
+# Memory Information
+$memoryInfo = Get-WmiObject Win32_PhysicalMemory
+$memoryTable = @()
+
+foreach ($mem in $memoryInfo) {
+    $memVendor = $mem.Manufacturer
+    $memDescription = $mem.Description
+    $memSizeGB = FormatHumanFriendlyNumber $mem.Capacity
+    $memBank = $mem.BankLabel
+    $memSlot = $mem.DeviceLocator
+
+    $memoryTable += [PSCustomObject]@{
+        Vendor = $memVendor
+        Description = $memDescription
+        Size = $memSizeGB
+        Bank = $memBank
+        Slot = $memSlot
+    }
+}
+
+# Disk Drive Information
+$diskInfo = Get-WmiObject Win32_DiskDrive
+$diskTable = @()
+
+foreach ($disk in $diskInfo) {
+    $diskVendor = $disk.Manufacturer
+    $diskModel = $disk.Model
+    $diskSizeGB = FormatHumanFriendlyNumber $disk.Size
+
+    $diskPartitions = Get-WmiObject Win32_DiskPartition | Where-Object { $_.DiskIndex -eq $disk.Index }
+    foreach ($partition in $diskPartitions) {
+        $logicalDisks = Get-WmiObject Win32_LogicalDisk | Where-Object { $_.DeviceID -eq $partition.DeviceID }
+        foreach ($logicalDisk in $logicalDisks) {
+            $diskFreeSpaceGB = FormatHumanFriendlyNumber $logicalDisk.FreeSpace
+            $diskUsedSpaceGB = FormatHumanFriendlyNumber ($disk.Size - $logicalDisk.FreeSpace)
+            $diskFreePercentage = "{0:N2}%" -f (($logicalDisk.FreeSpace / $disk.Size) * 100)
+
+            $diskTable += [PSCustomObject]@{
+                Vendor = $diskVendor
+                Model = $diskModel
+                Size = $diskSizeGB
+                LogicalDisk = $logicalDisk.DeviceID
+                FreeSpace = $diskFreeSpaceGB
+                UsedSpace = $diskUsedSpaceGB
+                FreePercentage = $diskFreePercentage
+            }
+        }
+    }
+}
+
+# Network Adapter Information
+$networkAdapters = Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.IPEnabled }
+
+$adapterConfigurations = @()
+
+foreach ($adapter in $networkAdapters) {
+    $dnsServers = $adapter.DNSServerSearchOrder -join ', '
+    if ([string]::IsNullOrEmpty($dnsServers)) {
+        $dnsServers = "N/A"
+    }
+    
+    $adapterConfig = @{
+        Description = $adapter.Description
+        Index = $adapter.Index
+        IPAddress = $adapter.IPAddress -join ', '
+        SubnetMask = $adapter.IPSubnet -join ', '
+        DNSDomain = $adapter.DNSDomain
+        DNSServer = $dnsServers
+    }
+    $adapterConfigurations += $adapterConfig
+}
+
+# Display the gathered information
+
+# Operating System Information
+Write-Host "Operating System Information"
+Write-Host "---------------------------"
+Write-Host "Name: $osName"
+Write-Host "Version: $osVersion"
+Write-Host "Architecture: $osArchitecture"
+Write-Host
+
+# Computer System Information
+Write-Host "Computer System Information"
+Write-Host "---------------------------"
+Write-Host "Manufacturer: $manufacturer"
+Write-Host "Model: $model"
+Write-Host
+
+# Processor Information
+Write-Host "Processor Information"
+Write-Host "---------------------"
+Write-Host "Description: $cpuDescription"
+Write-Host "Speed: $cpuSpeed"
+Write-Host "Cores: $cpuCores"
+Write-Host "Threads: $cpuThreads"
+Write-Host "L1 Cache Size: $l1CacheSizeMB"
+Write-Host "L2 Cache Size: $l2CacheSizeMB"
+Write-Host "L3 Cache Size: $l3CacheSizeMB"
+Write-Host
+
+# Memory Information (Table Format)
+Write-Host "Memory Information"
+Write-Host "------------------"
+$memoryTable | Format-Table -AutoSize -Property Vendor, Description, Size, Bank, Slot
+Write-Host
+
+# Disk Drive Information (Table Format)
+Write-Host "Disk Drive Information"
+Write-Host "----------------------"
+$diskTable | Format-Table -AutoSize -Property
+# Function to format numbers in a human-friendly way
+function FormatHumanFriendlyNumber($value) {
+    if ($value -gt 1GB) {
+        return "{0:N2} GB" -f ($value / 1GB)
+    } elseif ($value -gt 1MB) {
+        return "{0:N2} MB" -f ($value / 1MB)
+    } elseif ($value -gt 1KB) {
+        return "{0:N2} KB" -f ($value / 1KB)
+    } else {
+        return "$value Bytes"
+    }
+}
+
