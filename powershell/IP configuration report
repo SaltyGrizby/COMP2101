@@ -1,0 +1,68 @@
+# Get network adapter information for enabled adapters
+$networkAdapters = Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.IPEnabled }
+
+# Create an empty array to store adapter configuration details
+$adapterConfigurations = @()
+
+# Loop through each network adapter
+foreach ($adapter in $networkAdapters) {
+    $dnsServers = $adapter.DNSServerSearchOrder -join ', '
+    $adapterConfig = @{
+        Description = $adapter.Description
+        Index = $adapter.Index
+        IPAddress = $adapter.IPAddress -join ', '
+        SubnetMask = $adapter.IPSubnet -join ', '
+        DNSDomain = $adapter.DNSDomain
+        DNSServer = $dnsServers
+    }
+    $adapterConfigurations += $adapterConfig
+}
+
+# Create an HTML report
+$htmlReport = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Adapter Configuration Report</h1>
+    <table>
+        <tr>
+            <th>Description</th>
+            <th>Index</th>
+            <th>IP Address</th>
+            <th>Subnet Mask</th>
+            <th>DNS Domain</th>
+            <th>DNS Server</th>
+        </tr>
+        $(
+            foreach ($config in $adapterConfigurations) {
+                "<tr><td>$($config.Description)</td><td>$($config.Index)</td><td>$($config.IPAddress)</td><td>$($config.SubnetMask)</td><td>$($config.DNSDomain)</td><td>$($config.DNSServer)</td></tr>"
+            }
+        )
+    </table>
+</body>
+</html>
+"@
+
+# Save the HTML report to a file
+$htmlReport | Out-File -FilePath "Adapter_Config_Report.html" -Encoding UTF8
+
+# Format and display the output as a table
+$adapterConfigurations | Format-Table -AutoSize -Property Description, Index, IPAddress, SubnetMask, DNSDomain, DNSServer
+
+# Save the formatted output to a file
+$adapterConfigurations | Format-Table -AutoSize -Property Description, Index, IPAddress, SubnetMask, DNSDomain, DNSServer | Out-File -FilePath "Adapter_Config_Report.txt" -Encoding UTF8
+
+Write-Host "Adapter Configuration report generated: Adapter_Config_Report.html (HTML) and Adapter_Config_Report.txt (Formatted Text)"
